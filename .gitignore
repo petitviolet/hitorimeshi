@@ -1,0 +1,14 @@
+*.pyc
+_*
+.*
+*.txt
+!.gitignore
+*.org
+*.sql
+cache/*
+log/*
+*.wsgi
+app/log/*
+app/basic_auth.py
+secret*
+station*
