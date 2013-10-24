@@ -65,6 +65,20 @@ def index():
     return response
 
 ##############################
+# Tabelogテーブル
+##############################
+@app.route('/near_rst', method=['GET'])
+def near_rests():
+    # near_rests(lat=34.985458, lng=135.757755, zoom=1):
+    zoom = request.form.get('zoom')
+    lat = request.form.get('lat')
+    lng = request.form.get('lng')
+    rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom)
+    response = jsonify({'result': rsts})
+    response.status_code = 200 if rsts else 418
+    return response
+
+##############################
 # Userテーブル
 ##############################
 
@@ -151,7 +165,7 @@ def create_or_update_post():
     comment = request.form.get('comment')
     inserted_id = df.insert_or_update_user_post(\
             user_id, rst_id, difficulty, comment)
-    response = jsonify({'userpost_id': inserted_id})
+    response = jsonify({'user_post_id': inserted_id})
     response.status_code = 201 if inserted_id else 418
     return response
 
