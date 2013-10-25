@@ -10,6 +10,7 @@ from flask import Flask, jsonify, request, abort
 from logger import config_logger
 from basic_auth import requires_auth
 from secret import HOST
+from flask.ext.cache import Cache
 
 __version__ = 1.0
 
@@ -21,7 +22,10 @@ def create_app():
     config_logger(app)
     return app
 
+cache = Cache()
 app = create_app()
+cache.init_app(app, config={'CACHE_TYPE': 'simple'})
+
 # basic認証
 @app.before_request
 @requires_auth
@@ -68,9 +72,8 @@ def index():
 # Tabelogテーブル
 ##############################
 @app.route('/near_rst', methods=['GET'])
-def near_rests():
+def near_rsts():
     # near_rests(lat=34.985458, lng=135.757755, zoom=1):
-    print 'request :', request.form
     if len(request.form) == 0:
         response = jsonify({'result': False})
         response.status_code = 500
@@ -79,13 +82,23 @@ def near_rests():
         lat = request.form.get('lat')
         lng = request.form.get('lng')
         limit = request.form.get('limit')
-        limit = int(limit) if limit else 100
-        rsts = df.near_rests(lat=float(lat), lng=float(lng), \
-                zoom=float(zoom), limit=limit).all()
-        rsts = [rst._asdict() for rst in rsts] if rsts else None
+        rsts = get_near_rsts(zoom=zoom, lat=lat, lng=lng, limit=limit)
+        # limit = request.form.get('limit')
+        # limit = int(limit) if limit else 100
+        # rsts = df.near_rests(lat=float(lat), lng=float(lng), \
+        #         zoom=float(zoom), limit=limit).all()
+        # rsts = [rst._asdict() for rst in rsts] if rsts else None
         response = jsonify({'result': rsts})
         response.status_code = 200 if rsts else 418
     return response
+
+@cache.memoize(timeout=15)
+def get_near_rsts(zoom, lat, lng, limit):
+    limit = int(limit) if limit else 100
+    rsts = df.near_rests(lat=float(lat), lng=float(lng), \
+            zoom=float(zoom), limit=limit).all()
+    rsts = [rst._asdict() for rst in rsts] if rsts else None
+    return rsts
 
 
 ##############################
