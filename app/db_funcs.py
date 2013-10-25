@@ -80,7 +80,7 @@ def execute_sql(table='tabelog', where=''):
 def _get_margin(zoom=1.0):
     return 0.005 * (20.0 / (zoom + 0.0000000000000001))
 
-def near_rests(lat=34.985458, lng=135.757755, zoom=1):
+def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
     '''引数のlat(緯度)とlng(経度)を中心として、縦横margin*2の正方形ないにある
     レストランをTabelogテーブルから取得する
     デフォルト値は京都駅の緯度経度
@@ -100,7 +100,8 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1):
             Tabelog.Station, Tabelog.Address, Tabelog.Tel,
             Tabelog.BusinessHours, Tabelog.Holiday,
             gf.wkt(Tabelog.LatLng).label('Point'))\
-            .filter(Tabelog.LatLng.within(box))
+            .filter(Tabelog.LatLng.within(box))\
+            .limit(limit)
     session.close()
     return s
 

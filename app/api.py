@@ -67,16 +67,26 @@ def index():
 ##############################
 # Tabelogテーブル
 ##############################
-@app.route('/near_rst', method=['GET'])
+@app.route('/near_rst', methods=['GET'])
 def near_rests():
     # near_rests(lat=34.985458, lng=135.757755, zoom=1):
-    zoom = request.form.get('zoom')
-    lat = request.form.get('lat')
-    lng = request.form.get('lng')
-    rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom)
-    response = jsonify({'result': rsts})
-    response.status_code = 200 if rsts else 418
+    print 'request :', request.form
+    if len(request.form) == 0:
+        response = jsonify({'result': False})
+        response.status_code = 500
+    else:
+        zoom = request.form.get('zoom')
+        lat = request.form.get('lat')
+        lng = request.form.get('lng')
+        limit = request.form.get('limit')
+        limit = int(limit) if limit else 100
+        rsts = df.near_rests(lat=float(lat), lng=float(lng), \
+                zoom=float(zoom), limit=limit).all()
+        rsts = [rst._asdict() for rst in rsts] if rsts else None
+        response = jsonify({'result': rsts})
+        response.status_code = 200 if rsts else 418
     return response
+
 
 ##############################
 # Userテーブル
