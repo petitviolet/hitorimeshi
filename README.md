@@ -25,7 +25,7 @@
 
 2.ユーザー情報取得
   * url: /read\_user
-  * method: get
+  * method: post
   * data: \{user\_id: ユーザーid\}
   * 返り値: \{result: \{id, user\_name, home\_place\}\}
 
@@ -51,7 +51,7 @@
 
 2.情報取得
   * url: /read\_post
-  * method: get
+  * method: post
   * data: \{user\_id: ユーザーid, rst\_id: レストランのrcd\}
   * 返り値: \{user\_post: \{user\_id, rst\_id, difficulty, comment\}\}
 
