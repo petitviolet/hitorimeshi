@@ -14,7 +14,7 @@
 ### レストラン
 1.近隣の店舗検索
   * url: /near\_rst
-  * method: get
+  * method: post
   * data: \{zoom: ズームレベル, lat: 緯度, lng: 経度, limit: 取得数(デフォルトで100件)\}
   * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore, situation,  
                         dinnerprice, lunchprice, category, station, address, tel, buisinesshours
