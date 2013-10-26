@@ -92,6 +92,9 @@ def index():
 ##############################
 @app.route('/near_rst', methods=['POST'])
 def near_rsts():
+    '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
+    postメソッドでzoomとlatとlngとlimit
+    '''
     # near_rests(lat=34.985458, lng=135.757755, zoom=1):
     if len(request.form) == 0:
         response = jsonify({'result': False})
@@ -110,11 +113,32 @@ def near_rsts():
 
 @cache.memoize(timeout=15)
 def get_near_rsts(zoom, lat, lng, limit):
+    '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
+    '''
     limit = limit if limit else 100
     rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit).all()
     rsts = [rst._asdict() for rst in rsts] if rsts else None
     return rsts
 
+@app.route('/read_rst', methods=['POST'])
+def read_rst():
+    '''rcd(rst_id)を渡してその店舗の詳細情報を得る
+    postメソッドで、rst_id
+    '''
+    _type = {'rst_id': 'int'}
+    values = _check_form(request.form, _type)
+    rst_id = values['rst_id']
+    rst_info = get_rst_info(rst_id)
+    response = jsonify({'result': rst_info})
+    response.status_code = 200
+    return response
+
+@cache.memoize(timeout=15)
+def get_rst_info(rst_id):
+    '''dbにアクセスするもので、cacheを使う
+    '''
+    rst_info = df.read_rst(rst_id)
+    return rst_info._asdict() if rst_info else None
 
 ##############################
 # Userテーブル
@@ -140,7 +164,7 @@ def create_user():
 @app.route('/read_user', methods=['POST'])
 def read_user():
     '''Userのユーザ情報取得
-    getメソッドでuser_id
+    postメソッドでuser_id
     '''
     _type = {'user_id': 'int'}
     values = _check_form(request.form, _type)
@@ -213,7 +237,7 @@ def get_situation():
 # def insert_or_update_user_post(user_id, rst_id, difficulty, comment):
 def create_or_update_post():
     '''UserPostにデータを作成or更新
-    Postメソッドでuser_idとrst_idとdifficultyとcomment
+    postメソッドでuser_idとrst_idとdifficultyとcomment
     '''
     _type = {'user_id': 'int', 'rst_id': 'int', \
                     'difficulty': 'float', 'comment': 'str'}
@@ -236,7 +260,7 @@ def create_or_update_post():
 @app.route('/read_post', methods=['POST'])
 def read_post():
     '''UserPostのデータを取得
-    Getメソッドでuser_idとrst_id
+    postメソッドでuser_idとrst_id
     '''
     _type = {'user_id': 'int', 'rst_id': 'int'}
     values = _check_form(request.form, _type)

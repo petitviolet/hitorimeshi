@@ -8,6 +8,10 @@ import MySQLdb
 import cPickle
 from time import sleep
 from secret import db, host, user, passwd, charset
+import sys, os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/app')
+from Table import Session, UserPost
+from datetime import datetime
 
 def save_tabelog_situations():
     '''tabelogのhtmlから使用用途をスクレイピング
@@ -63,6 +67,55 @@ def save_tabelog_situations():
     con.close()
     return True
 
+def set_default_difficulty(fname='situation.dict'):
+    print 'load_pickle ... ',
+    dic = load_pickle(fname)
+    print 'done.'
+    scores = calc_default_difficulty(dic)
+    print 'calc_default_difficulty ... done.'
+    del dic
+    con = MySQLdb.connect(db=db, host=host,\
+            user=user, passwd=passwd, charset=charset)
+    cur = con.cursor()
+    user_id, comment = 19, ''
+    get_rstid = 'select Rcd from tabelog where tabelogurl = %s limit 1'
+    session = Session()
+    i, count = 1, len(scores)
+    for_add = []
+    for url, difficulty in scores.iteritems():
+        print '{i} / {count} url'.format(i=i, count=count)
+        difficulty = round(difficulty, 1)
+        i += 1
+        result = cur.execute(get_rstid, url)
+        rst_id = cur.fetchone()[0] if result else None
+        now = datetime.now()
+
+        userpost = session.query(UserPost)\
+                .filter('user_id = :user_id and rst_id = :rst_id')\
+                .params(user_id=user_id, rst_id=rst_id).first()
+        if userpost:
+            print 'update'
+            userpost.modified = now
+            userpost.difficulty = difficulty
+            userpost.comment = comment
+        else:
+            print 'insert'
+            user_post = UserPost(user_id, rst_id, difficulty, comment, now, now)
+            # session.begin()
+            for_add.append(user_post)
+    try:
+        session.add_all(for_add)
+        session.flush()
+        session.commit()
+        session.close()
+    except Exception ,e:
+        session.rollback()
+        print e
+        session.close()
+        return False
+    return True
+
+
 def load_pickle(fname):
     '''cPickleをロードする
     '''
@@ -74,12 +127,10 @@ def load_pickle(fname):
         print e
         return False
 
-def calc_default_difficulty():
+def calc_default_difficulty(situations=load_pickle('situation.dict')):
     '''初期値となる難易度を計算する
     計算式は直感
     '''
-    fname = 'situation.dict'
-    situations = load_pickle(fname)
     # スコアを(lonly, total)から計算する。適当。
     s = lambda x: sqrt(sqrt(x))
     calc = lambda t, l: log(s(t - l + 1) * ((t + 0.1) / (l + 0.1)) * s(t + 1))
@@ -108,27 +159,14 @@ def calc_default_difficulty():
         result[k] = normalize(v)
     return result
 
-def convert_result(result=calc_default_difficulty()):
-    '''executemanyするために値を変換する
-    (TabelogURL, difficulty)となっているのを入れ替えるだけ
-    '''
-    values = []
-    for k, v in result.iteritems():
-        values.append((v, k))
-    return values
-
-def set_diffuculty(result=convert_result()):
-    '''うまくいきません
-    テーブル定義を変える必要あり
-    '''
-    con = MySQLdb.connect(db=db, host=host,\
-            user=user, passwd=passwd, charset=charset)
-    cur = con.cursor()
-    sql = 'update user_post set difficulty = %s where rst_id = \
-            (select Rcd from tabelog where TabelogURL = %s limit 1)'
-    cur.executemany(sql, result)
-    cur.close()
-    con.close()
+# def convert_result(result=calc_default_difficulty()):
+#     '''executemanyするために値を変換する
+#     (TabelogURL, difficulty)となっているのを入れ替えるだけ
+#     '''
+#     values = []
+#     for k, v in result.iteritems():
+#         values.append((v, k))
+#     return values
 
 def download_html_into_soup(url):
     '''urlにhttpアクセスしてそれをBeautifulSoup化

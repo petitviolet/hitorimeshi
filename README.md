@@ -3,7 +3,7 @@
 
 更新日時
 --
-2013/10/26 11:59 
+2013/10/26 18:35 
 
 使い方
 --
@@ -16,9 +16,17 @@
   * url: /near\_rst
   * method: post
   * data: \{zoom: ズームレベル, lat: 緯度, lng: 経度, limit: 取得数(デフォルトで100件)\}
-  * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore, situation,  
-                        dinnerprice, lunchprice, category, station, address, tel, buisinesshours
-                        holiday, point\}\}
+  * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
+  situation, dinnerprice, lunchprice, category, station, address,  
+  tel, buisinesshours, holiday, point\}\}
+
+2.店舗の詳細情報
+  * url: /read\_rst
+  * method: post
+  * data: \{rst\_id: tabelogテーブルのrcd\}
+  * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
+  situation, dinnerprice, lunchprice, category, station, address,  
+  tel, buisinesshours, holiday, point\}\}
 
 ### User
 1.ユーザー作成

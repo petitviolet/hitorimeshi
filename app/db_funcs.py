@@ -105,6 +105,19 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
     session.close()
     return s
 
+def read_rst(rst_id):
+    session = Session()
+    s = session.query(
+            Tabelog.id, Tabelog.Rcd, Tabelog.RestaurantName,
+            Tabelog.TabelogMobileUrl, Tabelog.TotalScore, Tabelog.Situation,
+            Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
+            Tabelog.Station, Tabelog.Address, Tabelog.Tel,
+            Tabelog.BusinessHours, Tabelog.Holiday,
+            gf.wkt(Tabelog.LatLng).label('Point'))\
+                    .filter('Rcd = :rcd').params(rcd=rst_id).first()
+    session.close()
+    return s
+
 def read_user(user_id):
     '''Userテーブルからid=user_idのユーザーの情報を取得
     返り値はuserの情報
