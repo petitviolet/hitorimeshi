@@ -34,7 +34,7 @@ TODO
   * method: post
   * data: \{zoom: ズームレベル, lat: 緯度, lng: 経度, limit: 取得数(デフォルトで100件)\}
   * 返り値: \{result: \{rst\_id, Restaurantname, Category, lat, lng, difficulty\(四捨五入\), raw\_difficulty\}\}
-  - 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
+  -返り値:\{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
   situation, dinnerprice, lunchprice, category, station, address,  
   tel, buisinesshours, holiday, point\}\}-
 
