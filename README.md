@@ -3,7 +3,12 @@
 
 更新日時
 --
-2013/10/26 18:35 
+2013/10/28 16:23 
+近隣の店舗検索(near\_rst)の修正
+1.返す値を絞った
+2.難易度を取得するように変更
+3.四捨五入したもの\(difficulty\)としていないもの\(raw\_difficulty\)を取得するようにした
+4.Point\(lat, lng\)としていたが、latとlngでわけた
 
 使い方
 --
@@ -25,9 +30,10 @@ TODO
   * url: /near\_rst
   * method: post
   * data: \{zoom: ズームレベル, lat: 緯度, lng: 経度, limit: 取得数(デフォルトで100件)\}
-  * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
+  * 返り値: \{result: \{rst\_id, Restaurantname, Category, lat, lng, difficulty\(四捨五入\), raw\_difficulty\}\}
+  - 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
   situation, dinnerprice, lunchprice, category, station, address,  
-  tel, buisinesshours, holiday, point\}\}
+  tel, buisinesshours, holiday, point\}\}-
 
 2.店舗の詳細情報
   * url: /read\_rst

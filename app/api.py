@@ -120,6 +120,38 @@ def get_near_rsts(zoom, lat, lng, limit):
     rsts = [rst._asdict() for rst in rsts] if rsts else None
     return rsts
 
+# test
+@app.route('/full_info_of_near_rests', methods=['POST'])
+def test_near_rsts():
+    '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
+    postメソッドでzoomとlatとlngとlimit
+    '''
+    # near_rests(lat=34.985458, lng=135.757755, zoom=1):
+    if len(request.form) == 0:
+        response = jsonify({'result': False})
+        response.status_code = 500
+    else:
+        _type = {'zoom': 'float', 'lat': 'float', 'lng': 'float', 'limit': 'int'}
+        values = _check_form(request.form, _type)
+        zoom = values['zoom']
+        lat = values['lat']
+        lng = values['lng']
+        limit = values['limit']
+        rsts = get_full_info_of_near_rsts(zoom=zoom, lat=lat, lng=lng, limit=limit)
+        response = jsonify({'result': rsts})
+        response.status_code = 200 if rsts else 418
+    return response
+
+@cache.memoize(timeout=15)
+def get_full_info_of_near_rsts(zoom, lat, lng, limit):
+    '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
+    '''
+    limit = limit if limit else 100
+    rsts = df.full_info_of_near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit).all()
+    rsts = [rst._asdict() for rst in rsts] if rsts else None
+    return rsts
+####
+
 @app.route('/read_rst', methods=['POST'])
 def read_rst():
     '''rcd(rst_id)を渡してその店舗の詳細情報を得る

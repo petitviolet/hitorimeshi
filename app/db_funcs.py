@@ -94,6 +94,37 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
     session = Session()
     # s = session.query(Tabelog.RestaurantName, gf.wkt(Tabelog.LatLng))\
     s = session.query(
+            Tabelog.Rcd.label('rst_id'), Tabelog.RestaurantName, Tabelog.Category,
+            # Tabelog.TabelogMobileUrl, Tabelog.TotalScore, Tabelog.Situation,
+            # Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
+            # Tabelog.Station, Tabelog.Address, Tabelog.Tel,
+            # Tabelog.BusinessHours, Tabelog.Holiday,
+            # gf.wkt(Tabelog.LatLng).label('Point'),
+            gf.x(Tabelog.LatLng).label('lat'),
+            gf.y(Tabelog.LatLng).label('lng'),
+            func.round(func.avg(UserPost.difficulty)).label('difficulty'),\
+            func.avg(UserPost.difficulty).label('raw_difficulty'))\
+            .filter(UserPost.rst_id == Tabelog.Rcd)\
+            .filter(Tabelog.LatLng.within(box))\
+            .group_by(UserPost.id)\
+            .limit(limit)
+    session.close()
+    return s
+
+def full_info_of_near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
+    '''引数のlat(緯度)とlng(経度)を中心として、縦横margin*2の正方形ないにある
+    レストランをTabelogテーブルから取得する
+    デフォルト値は京都駅の緯度経度
+    '''
+    margin = _get_margin(zoom)
+    left, right = lng - margin, lng + margin
+    bottom, top = lat - margin, lat + margin
+    box = 'POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))' \
+            % (left, bottom, right, bottom, right, top, left, top, left, bottom)
+            # % (x+m, y-m, x-m, y-m, x-m, y+m, x+m, y+m, x+m, y-m)
+    session = Session()
+    # s = session.query(Tabelog.RestaurantName, gf.wkt(Tabelog.LatLng))\
+    s = session.query(
             Tabelog.id, Tabelog.Rcd, Tabelog.RestaurantName,
             Tabelog.TabelogMobileUrl, Tabelog.TotalScore, Tabelog.Situation,
             Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
@@ -108,13 +139,19 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
 def read_rst(rst_id):
     session = Session()
     s = session.query(
-            Tabelog.id, Tabelog.Rcd, Tabelog.RestaurantName,
+            Tabelog.Rcd.label('rst_id'), Tabelog.RestaurantName,
             Tabelog.TabelogMobileUrl, Tabelog.TotalScore, Tabelog.Situation,
             Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
             Tabelog.Station, Tabelog.Address, Tabelog.Tel,
             Tabelog.BusinessHours, Tabelog.Holiday,
-            gf.wkt(Tabelog.LatLng).label('Point'))\
-                    .filter('Rcd = :rcd').params(rcd=rst_id).first()
+            gf.x(Tabelog.LatLng).label('lat'),
+            gf.y(Tabelog.LatLng).label('lng'),
+            func.round(func.avg(UserPost.difficulty)).label('difficulty'))\
+            .filter(Tabelog.Rcd == rst_id)\
+            .filter(UserPost.rst_id == Tabelog.Rcd)\
+            .group_by(UserPost.id).first()
+            # gf.wkt(Tabelog.LatLng).label('Point'))\
+            #         .filter('Rcd = :rcd').params(rcd=rst_id).first()
     session.close()
     return s
 
@@ -275,18 +312,18 @@ def insert_data(session, new_obj):
     session.close()
     return inserted_id
 
-def avg_difficult(id):
+def avg_difficult(rst_id):
     '''Tabelog.idの店について、平均のdifficultyを返す
     '''
     session = Session()
-    rst_id = session.query(Tabelog.Rcd)\
-            .filter('id = :id').params(id = id).first()
+    # rst_id = session.query(Tabelog.Rcd)\
+    #         .filter('id = :id').params(id = id).first()
     if not rst_id:
         print 'no such Restaurant'
         session.close()
         return False
     avg = session.query(func.avg(UserPost.difficulty))\
-            .filter('rst_id = :rst_id').params(rst_id = rst_id[0]).first()
+            .filter('rst_id = :rst_id').params(rst_id = rst_id).first()
     session.close()
     return float(avg[0]) if avg[0] else False
 
