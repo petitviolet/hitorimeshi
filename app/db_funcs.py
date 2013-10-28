@@ -146,7 +146,8 @@ def read_rst(rst_id):
             Tabelog.BusinessHours, Tabelog.Holiday,
             gf.x(Tabelog.LatLng).label('lat'),
             gf.y(Tabelog.LatLng).label('lng'),
-            func.round(func.avg(UserPost.difficulty)).label('difficulty'))\
+            func.round(func.avg(UserPost.difficulty)).label('difficulty'),\
+            func.avg(UserPost.difficulty).label('raw_difficulty'))\
             .filter(Tabelog.Rcd == rst_id)\
             .filter(UserPost.rst_id == Tabelog.Rcd)\
             .group_by(UserPost.id).first()

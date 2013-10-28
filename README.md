@@ -4,7 +4,7 @@
 更新日時
 --
 2013/10/28 16:23 
-近隣の店舗検索(near\_rst)の修正  
+店舗検索(near\_rst, read\_rst)の修正  
 1.返す値を絞った
 
 2.難易度を取得するように変更
@@ -34,9 +34,8 @@ TODO
   * method: post
   * data: \{zoom: ズームレベル, lat: 緯度, lng: 経度, limit: 取得数(デフォルトで100件)\}
   * 返り値: \{result: \{rst\_id, Restaurantname, Category, lat, lng, difficulty\(四捨五入\), raw\_difficulty\}\}
-  -返り値:\{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
-  situation, dinnerprice, lunchprice, category, station, address,  
-  tel, buisinesshours, holiday, point\}\}-
+
+  <strike>以前の返り値:\{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,situation, dinnerprice, lunchprice, category, station, address,tel, buisinesshours, holiday, point\}\}</strike>
 
 2.店舗の詳細情報
   * url: /read\_rst
@@ -44,7 +43,7 @@ TODO
   * data: \{rst\_id: tabelogテーブルのrcd\}
   * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
   situation, dinnerprice, lunchprice, category, station, address,  
-  tel, buisinesshours, holiday, point\}\}
+  tel, buisinesshours, holiday, lat, lng, difficluty, raw\_difficulty\}\}
 
 ### User
 1.ユーザー作成
