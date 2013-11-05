@@ -69,7 +69,7 @@ def _check_form(forms, tokens):
             elif t == 'str':
                 value = value.encode('utf-8')
         except Exception, e:
-            print e
+            # print e
             value = None
         result[k] = value
     return result
@@ -121,7 +121,7 @@ def get_near_rsts(zoom, lat, lng, limit):
     return rsts
 
 # test
-@app.route('/full_info_of_near_rests', methods=['POST'])
+@app.route('/full_info_of_near_rst', methods=['POST'])
 def test_near_rsts():
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     postメソッドでzoomとlatとlngとlimit
@@ -201,13 +201,14 @@ def read_user():
     _type = {'user_id': 'int'}
     values = _check_form(request.form, _type)
     user_id = values['user_id']
-    print request.__dict__
+    # print request.__dict__
     if not user_id:
         response = jsonify({'result': False})
         response.status_code = 418
         return response
     user = df.read_user(int(user_id))
     user = user._asdict() if user else None
+    # response = jsonify(user)
     response = jsonify({'result': user})
     response.status_code = 200
     return response

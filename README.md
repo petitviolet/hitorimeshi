@@ -3,15 +3,8 @@
 
 更新日時
 --
-2013/10/28 16:23 
-店舗検索(near\_rst, read\_rst)の修正  
-1.返す値を絞った
-
-2.難易度を取得するように変更
-
-3.四捨五入したもの\(difficulty\)としていないもの\(raw\_difficulty\)を取得するようにした
-
-4.Point\(lat, lng\)としていたが、latとlngでわけた
+2013/11/05 16:56 
+1.read\_rstでrcdとなっていたのをrst\_idに訂正
 
 使い方
 --
@@ -41,7 +34,7 @@ TODO
   * url: /read\_rst
   * method: post
   * data: \{rst\_id: tabelogテーブルのrcd\}
-  * 返り値: \{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,  
+  * 返り値: \{result: \{id, rst\_id, restaurantname, tabelogmoblieurl, totalscore,  
   situation, dinnerprice, lunchprice, category, station, address,  
   tel, buisinesshours, holiday, lat, lng, difficluty, raw\_difficulty\}\}
 
