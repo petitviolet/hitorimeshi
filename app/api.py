@@ -161,7 +161,8 @@ def read_rst():
     values = _check_form(request.form, _type)
     rst_id = values['rst_id']
     rst_info = get_rst_info(rst_id)
-    response = jsonify({'result': rst_info})
+    # response = jsonify({'result': rst_info})
+    response = jsonify(rst_info)
     response.status_code = 200
     return response
 
