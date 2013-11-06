@@ -3,9 +3,8 @@
 
 更新日時
 --
-2013/11/05 17:49  
-1.read\_rstでrcdとなっていたのをrst\_idに訂正
-2.read\_rstの構造をresult:~を~だけに
+2013/11/06 15:46  
+1.read\_rstでidを返してたのを返さないように
 
 使い方
 --
@@ -35,7 +34,7 @@ TODO
   * url: /read\_rst
   * method: post
   * data: \{rst\_id: tabelogテーブルのrcd\}
-  * 返り値: \{id, rst\_id, restaurantname, tabelogmoblieurl, totalscore,  
+  * 返り値: \{rst\_id, restaurantname, tabelogmoblieurl, totalscore,  
   situation, dinnerprice, lunchprice, category, station, address,  
   tel, buisinesshours, holiday, lat, lng, difficluty, raw\_difficulty\}
 
