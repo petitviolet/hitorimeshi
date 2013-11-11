@@ -12,6 +12,7 @@ from basic_auth import requires_auth
 from secret import HOST
 from flask.ext.cache import Cache
 
+
 __version__ = 1.0
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
@@ -24,6 +25,7 @@ def create_app():
 
 cache = Cache()
 app = create_app()
+
 cache.init_app(app, config={'CACHE_TYPE': 'simple'})
 
 # basic認証
@@ -43,6 +45,10 @@ def consumes(content_type):
             return function(*argv, **keywords)
         return __consumes
     return _consumes
+
+# @app.teardown_appcontext
+# def shutdown_session(exception=None):
+#     df.Session.remove()
 
 def _to_serializable_dict(result_obj):
     '''index用
@@ -111,7 +117,7 @@ def near_rsts():
         response.status_code = 200 if rsts else 418
     return response
 
-@cache.memoize(timeout=15)
+@cache.memoize(timeout=100)
 def get_near_rsts(zoom, lat, lng, limit):
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     '''
@@ -142,7 +148,7 @@ def test_near_rsts():
         response.status_code = 200 if rsts else 418
     return response
 
-@cache.memoize(timeout=15)
+@cache.memoize(timeout=100)
 def get_full_info_of_near_rsts(zoom, lat, lng, limit):
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     '''
@@ -166,7 +172,7 @@ def read_rst():
     response.status_code = 200
     return response
 
-@cache.memoize(timeout=15)
+@cache.memoize(timeout=10)
 def get_rst_info(rst_id):
     '''dbにアクセスするもので、cacheを使う
     '''

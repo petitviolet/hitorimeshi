@@ -1,6 +1,6 @@
 # -*- encoding:utf-8 -*-
 
-from Table import Session, Tabelog, User, UserPost
+from Table import Session, Tabelog, User, UserPost, Title, UserStats
 import geoalchemy.functions as gf
 from sqlalchemy import func
 from urllib import urlopen
@@ -13,6 +13,30 @@ def geo_coding(landmark):
     latlng = geo_json['results'][0]['geometry']['location']
     result = {'lat':latlng['lat'], 'lng':latlng['lng']}
     return result
+
+
+def insert_data(session, new_obj):
+    '''new_objを保存し、そのidを返す
+    '''
+    try:
+        # session.begin()
+        session.add(new_obj)
+        session.flush()
+        session.commit()
+    except Exception ,e:
+        session.rollback()
+        print e
+        session.commit()
+        session.close()
+        return False
+    inserted_id = new_obj.id
+    session.close()
+    return inserted_id
+
+
+##############################
+# Tabelog
+##############################
 
 def get_situation(situation):
     '''situationが引数のsituationを含むレストランを取得
@@ -30,6 +54,7 @@ def get_situation(situation):
             Tabelog.BusinessHours, Tabelog.Holiday,
             gf.wkt(Tabelog.LatLng).label('Point'))\
             .filter(Tabelog.Situation.like("%{situation}%".format(situation=situation)))
+    session.commit()
     session.close()
     return s
 
@@ -54,6 +79,7 @@ def execute_sql_to_tabelog(where):
             Tabelog.BusinessHours, Tabelog.Holiday,
             gf.wkt(Tabelog.LatLng).label('Point'))\
                     .filter(where)
+    session.commit()
     session.close()
     return s
 
@@ -74,6 +100,7 @@ def execute_sql(table='tabelog', where=''):
     except Exception:
         # print e
         s = False
+    session.commit()
     session.close()
     return s
 
@@ -108,6 +135,7 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
             .filter(Tabelog.LatLng.within(box))\
             .group_by(UserPost.id)\
             .limit(limit)
+    session.commit()
     session.close()
     return s
 
@@ -133,6 +161,7 @@ def full_info_of_near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
             gf.wkt(Tabelog.LatLng).label('Point'))\
             .filter(Tabelog.LatLng.within(box))\
             .limit(limit)
+    session.commit()
     session.close()
     return s
 
@@ -153,8 +182,14 @@ def read_rst(rst_id):
             .group_by(UserPost.id).first()
             # gf.wkt(Tabelog.LatLng).label('Point'))\
             #         .filter('Rcd = :rcd').params(rcd=rst_id).first()
+    session.commit()
     session.close()
     return s
+
+
+##############################
+# User
+##############################
 
 def read_user(user_id):
     '''Userテーブルからid=user_idのユーザーの情報を取得
@@ -164,6 +199,7 @@ def read_user(user_id):
     user = session.query(User.id, User.user_name, User.home_place)\
             .filter('id = :user_id')\
             .params(user_id = user_id).first()
+    session.commit()
     session.close()
     return user
 
@@ -196,6 +232,7 @@ def update_user(user_id, new_name, new_place):
     except Exception, e:
         session.rollback()
         print e
+        session.commit()
         session.close()
         return False
 
@@ -217,8 +254,14 @@ def delete_user(user_id, confirmation=False):
     except Exception, e:
         session.rollback()
         print e
+        session.commit()
         session.close()
         return False
+
+
+##############################
+# UserPost
+##############################
 
 def read_user_post(user_id, rst_id):
     '''user_postからuser_idとrst_idの組を持つ行を取得
@@ -237,6 +280,7 @@ def read_user_post(user_id, rst_id):
                 UserPost.difficulty, UserPost.comment)\
                 .filter('rst_id = :rst_id')\
                 .params(rst_id = rst_id)
+    session.commit()
     session.close()
     return userpost
 
@@ -259,6 +303,7 @@ def delete_user_post(user_id, rst_id):
     except Exception, e:
         print 'delete_user_post :', e
         session.rollback()
+        session.commit()
         session.close()
         return False
 
@@ -277,7 +322,6 @@ def insert_or_update_user_post(user_id, rst_id, difficulty, comment):
             userpost.comment = comment
             inserted_id = userpost.id
             session.flush()
-            session.commit()
         except Exception, e:
             print e
             session.rollback()
@@ -296,35 +340,191 @@ def _check_user_post_is_exists(session, user_id, rst_id):
             .filter('user_id = :user_id and rst_id = :rst_id')\
             .params(user_id=user_id, rst_id=rst_id).first()
 
-def insert_data(session, new_obj):
-    '''new_objを保存し、そのidを返す
+def avg_difficult(rst_id):
+    '''Tabelog.idの店について、平均のdifficultyを返す
     '''
+    # rst_id = session.query(Tabelog.Rcd)\
+    #         .filter('id = :id').params(id = id).first()
+    if not rst_id:
+        print 'no such Restaurant'
+        return False
+    session = Session()
+    avg = session.query(func.avg(UserPost.difficulty))\
+            .filter('rst_id = :rst_id').params(rst_id = rst_id).first()
+    session.commit()
+    session.close()
+    return float(avg[0]) if avg[0] else False
+
+
+##############################
+# Title
+##############################
+def create_title(requirement):
+    '''Titleを作成
+    requirement：条件文
+    '''
+    session =  Session()
+    now = datetime.now()
+    new_title = Title(requirement, created=now, modified=now)
+    return insert_data(session, new_title)
+
+def read_title(id):
+    session = Session()
+    title = session.query(Title.id, User.user_name, User.home_place)\
+            .filter('id = :id')\
+            .params(id = id).first()
+    session.commit()
+    session.close()
+    return title
+
+def update_title(id, requirement):
+    now = datetime.now()
+    session = Session()
+    title = session.query(Title).filter(id=id)
+    title.requirement = requirement
+    title.modified = now
     try:
-        # session.begin()
-        session.add(new_obj)
         session.flush()
         session.commit()
     except Exception ,e:
         session.rollback()
         print e
+        session.commit()
         session.close()
         return False
-    inserted_id = new_obj.id
+    updated_id = title.id
     session.close()
-    return inserted_id
+    return updated_id
 
-def avg_difficult(rst_id):
-    '''Tabelog.idの店について、平均のdifficultyを返す
-    '''
+def delete_title(id):
     session = Session()
-    # rst_id = session.query(Tabelog.Rcd)\
-    #         .filter('id = :id').params(id = id).first()
-    if not rst_id:
-        print 'no such Restaurant'
+    try:
+        title = session.query(Title).filter('id = :id').params(id = id).first()
+        print title
+        session.delete(title)
+        session.flush()
+        session.commit()
+        session.close()
+        return True
+    except Exception, e:
+        print 'delete_user_post :', e
+        session.rollback()
+        session.commit()
         session.close()
         return False
-    avg = session.query(func.avg(UserPost.difficulty))\
-            .filter('rst_id = :rst_id').params(rst_id = rst_id).first()
+
+##############################
+# UserStats
+##############################
+
+def create_userstats(user_id, total, sequence, level_1, level_2, level_3,\
+        level_4, level_5, sakyo, ukyo, kita, kamigyo, shimogyo, nakagyo,\
+        higashiyama, yamashina, saikyo, minami, fushimi, already_acquire,\
+        created, modified):
+    '''userstatsを作成
+    requirement：条件文
+    '''
+    session =  Session()
+    now = datetime.now()
+    new_userstats = UserStats(user_id, total, sequence, \
+            level_1, level_2, level_3, level_4, level_5, \
+            sakyo, ukyo, kita, kamigyo, shimogyo, nakagyo,\
+            higashiyama, yamashina, saikyo, minami, fushimi, \
+            already_acquire, created=now, modified=now)
+    return insert_data(session, new_userstats)
+
+def read_userstats(user_id):
+    session = Session()
+    userstats = UserStats(\
+            UserStats.user_id, UserStats.total, UserStats.sequence, \
+            UserStats.level_1, UserStats.level_2, UserStats.level_3,
+            UserStats.level_4, UserStats.level_5, \
+            UserStats.sakyo, UserStats.ukyo, UserStats.kita, UserStats.kamigyo,
+            UserStats.shimogyo, UserStats.nakagyo,\
+            UserStats.higashiyama, UserStats.yamashina, UserStats.saikyo,
+            UserStats.minami, UserStats.fushimi, UserStats.already_acquire,
+            UserStats.created, UserStats.modified)\
+            .filter('user_id = :user_id')\
+            .params(user_id = user_id).first()
+    session.commit()
     session.close()
-    return float(avg[0]) if avg[0] else False
+    return userstats
+
+def update_userstats(\
+        user_id, total=None, sequence=None,
+        level_1=None, level_2=None, level_3=None, level_4=None, level_5=None, \
+        sakyo=None, ukyo=None, kita=None, kamigyo=None, shimogyo=None, \
+        nakagyo=None, higashiyama=None, yamashina=None, saikyo=None, \
+        minami=None, fushimi=None, already_acquire=None):
+    now = datetime.now()
+    session = Session()
+    userstats = session.query(UserStats).filter(user_id=user_id).first()
+    if total:
+        userstats.total = total
+    if sequence:
+        userstats.sequence = sequence
+    if level_1:
+        userstats.level_1 = level_1
+    if level_2:
+        userstats.level_2 = level_2
+    if level_3:
+        userstats.level_3 = level_3
+    if level_4:
+        userstats.level_4 = level_4
+    if level_5:
+        userstats.level_5 = level_5
+    if sakyo:
+        userstats.sakyo = sakyo
+    if ukyo:
+        userstats.ukyo = ukyo
+    if kita:
+        userstats.kita = kita
+    if kamigyo:
+        userstats.kamigyo = kamigyo
+    if shimogyo:
+        userstats.shimogyo = shimogyo
+    if nakagyo:
+        userstats.nakagyo = nakagyo
+    if higashiyama:
+        userstats.higashiyama = higashiyama
+    if yamashina:
+        userstats.yamashina = yamashina
+    if saikyo:
+        userstats.saikyo = saikyo
+    if minami:
+        userstats.minami = minami
+    if fushimi:
+        userstats.fushimi = fushimi
+    if already_acquire:
+        userstats.already_acquire = already_acquire
+    userstats.modified = now
+    try:
+        session.flush()
+        session.commit()
+    except Exception ,e:
+        session.rollback()
+        print e
+        session.commit()
+        session.close()
+        return False
+    updated_id = userstats.id
+    session.close()
+    return updated_id
+
+def delete_userstats(user_id):
+    session = Session()
+    try:
+        userstats = session.query(UserStats).filter(user_id = user_id).first()
+        print userstats
+        session.delete(userstats)
+        session.flush()
+        session.commit()
+        session.close()
+        return True
+    except Exception, e:
+        print 'delete_userstats :', e
+        session.rollback()
+        session.commit()
+        session.close()
+        return False
 
