@@ -153,7 +153,8 @@ class Title(Base):
     created = Column('created', DATETIME, default=datetime.now, nullable=False)
     modified = Column('modified', DATETIME, default=datetime.now, nullable=False)
     now = datetime.now()
-    def __init__(self, name, requirement, stamp, created, modified):
+    def __init__(self, rank, name, requirement, stamp, created, modified):
+        self.rank = rank
         self.name = name
         self.requirement = requirement
         self.stamp = stamp

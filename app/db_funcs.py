@@ -359,25 +359,27 @@ def avg_difficult(rst_id):
 ##############################
 def create_title(rank, name, requirement, stamp):
     '''Titleを作成
+    rank:プラチナとか
     requirement：条件文
+    stamp:スタンプ名
     '''
     session =  Session()
     now = datetime.now()
     new_title = Title(rank, name, requirement, stamp, created=now, modified=now)
     return insert_data(session, new_title)
 
-def read_title(id):
+def read_title(title_id):
     session = Session()
     title = session.query(Title.id, User.user_name, User.home_place)\
-            .filter(Title.id == id).first()
+            .filter(Title.id == title_id).first()
     session.commit()
     session.close()
     return title
 
-def update_title(id, rank, name, requirement, stamp):
+def update_title(title_id, rank, name, requirement, stamp):
     now = datetime.now()
     session = Session()
-    title = session.query(Title).filter(id=id)
+    title = session.query(Title).filter(Title.id == title_id)
     title.rank = rank
     title.name = name
     title.requirement = requirement
