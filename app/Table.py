@@ -1,6 +1,6 @@
 # -*- encoding:utf-8 -*-
 from sqlalchemy import Column, Integer, String, Text, ForeignKey,\
-        create_engine, MetaData, DECIMAL, DATETIME, exc, event
+        create_engine, MetaData, DECIMAL, DATETIME, exc, event, Index
 from sqlalchemy.orm import sessionmaker, relationship, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 from geoalchemy import GeometryColumn, Point
@@ -48,7 +48,7 @@ class Tabelog(Base):
     __tablename__ = 'tabelog'
     __table_args__ = {'mysql_engine': 'MyISAM'}
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    Rcd = Column('Rcd', Integer, unique=True)
+    Rcd = Column('Rcd', Integer, unique=True, index=True)
     RestaurantName = Column('RestaurantName', String(64))
     TabelogUrl = Column('TabelogUrl', String(255))
     TabelogMobileUrl = Column('TabelogMobileUrl', String(255))
@@ -126,6 +126,7 @@ class UserPost(Base):
     comment = Column('comment', Text)
     created = Column('created', DATETIME, default=datetime.now, nullable=False)
     modified = Column('modified', DATETIME, default=datetime.now, nullable=False)
+    Index('idx_userid_rstid', user_id, rst_id)
     now = datetime.now()
     def __init__(self, user_id, rst_id, difficulty, comment, created, modified):
         # self.id = id
@@ -145,24 +146,29 @@ class Title(Base):
     __tablename__ = 'title'
     __table_args__ = {'mysql_engine': 'MyISAM'}
     id = Column('id', Integer, primary_key=True, autoincrement=True)
+    rank = Column('rank', String(20))
+    name = Column('name', Text)
     requirement = Column('requirement', Text)
+    stamp = Column('stamp', Text)
     created = Column('created', DATETIME, default=datetime.now, nullable=False)
     modified = Column('modified', DATETIME, default=datetime.now, nullable=False)
     now = datetime.now()
-    def __init__(self, requirement, created, modified):
+    def __init__(self, name, requirement, stamp, created, modified):
+        self.name = name
         self.requirement = requirement
+        self.stamp = stamp
         self.created = created
         self.modified = modified
 
     def __repr__(self):
-        return "<Title>(id:{id}, requirement:{requirement}"\
-                .format(id=self.id, requirement=self.requirement)
+        return "<Title>(id:{id}, name:{name}, requirement:{requirement})"\
+                .format(id=self.id, name=self.name, requirement=self.requirement)
 
 class UserStats(Base):
     __tablename__ = 'user_stats'
     __table_args__ = {'mysql_engine': 'MyISAM'}
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    user_id = Column('user_id', Integer, ForeignKey('user.id'))
+    user_id = Column('user_id', Integer, ForeignKey('user.id'), index=True)
     total = Column('total', Integer, nullable=False, default=0)
     sequence = Column('sequence', Integer, nullable=False, default=0)
     level_1 = Column('level_1', Integer, nullable=False, default=0)
@@ -213,5 +219,5 @@ class UserStats(Base):
         self.modified = modified
 
     def __repr__(self):
-        return "<UserStats>(user_id:{u_id}, total:{total}, sequence:{sequence}"\
+        return "<UserStats>(user_id:{u_id}, total:{total}, sequence:{sequence})"\
                 .format(u_id=self.user_id, total=self.total, sequence=self.sequence)

@@ -1,6 +1,6 @@
 #!/usr/local/bin/python
 # -*- encoding:utf-8 -*-
-'''アプリ用API
+'''ぼっち飯図鑑アプリ用API
 あらゆるアクセスにbasic認証を必要とする'''
 
 from simplejson import dumps, loads
@@ -11,7 +11,7 @@ from logger import config_logger
 from basic_auth import requires_auth
 from secret import HOST
 from flask.ext.cache import Cache
-
+from update_userstats import Update_UserStats
 
 __version__ = 1.0
 
@@ -46,6 +46,7 @@ def consumes(content_type):
         return __consumes
     return _consumes
 
+# これをするとsessionが使えなくなる
 # @app.teardown_appcontext
 # def shutdown_session(exception=None):
 #     df.Session.remove()
@@ -93,8 +94,25 @@ def index():
     # response.status_code = 200
     return response
 
+@app.route('/situation', methods=['GET'])
+def get_situation():
+    '''/situation?situation=一人
+    とかでそのsituationにあった店リストを返す
+    '''
+    situation = request.args.get('situation')
+    if not situation:
+        return False
+    found_user = df.get_situation(situation.encode('utf-8'))
+    # レスポンスオブジェクトを作る
+    count, result = _to_serializable_dict(found_user)
+    response = jsonify({'count': count, 'result': result})
+    # ステータスコードは Created (201)
+    response.status_code = 200
+    return response
+
+
 ##############################
-# Tabelogテーブル
+# Tabelogテーブル/*{{{*/
 ##############################
 @app.route('/near_rst', methods=['POST'])
 def near_rsts():
@@ -117,7 +135,7 @@ def near_rsts():
         response.status_code = 200 if rsts else 418
     return response
 
-@cache.memoize(timeout=100)
+@cache.memoize(timeout=18000)
 def get_near_rsts(zoom, lat, lng, limit):
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     '''
@@ -148,7 +166,7 @@ def test_near_rsts():
         response.status_code = 200 if rsts else 418
     return response
 
-@cache.memoize(timeout=100)
+@cache.memoize(timeout=18000)
 def get_full_info_of_near_rsts(zoom, lat, lng, limit):
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     '''
@@ -172,15 +190,16 @@ def read_rst():
     response.status_code = 200
     return response
 
-@cache.memoize(timeout=10)
+@cache.memoize(timeout=18000)
 def get_rst_info(rst_id):
     '''dbにアクセスするもので、cacheを使う
     '''
     rst_info = df.read_rst(rst_id)
     return rst_info._asdict() if rst_info else None
+#}}}
 
 ##############################
-# Userテーブル
+# Userテーブル/*{{{*/
 ##############################
 
 @app.route('/create_user', methods=['POST'])
@@ -252,29 +271,13 @@ def delete_user():
     response = jsonify({'delete': success})
     response.status_code = 200 if success else 418
     return response
-
-@app.route('/situation', methods=['GET'])
-def get_situation():
-    '''/situation?situation=一人
-    とかでそのsituationにあった店リストを返す
-    '''
-    situation = request.args.get('situation')
-    if not situation:
-        return False
-    found_user = df.get_situation(situation.encode('utf-8'))
-    # レスポンスオブジェクトを作る
-    count, result = _to_serializable_dict(found_user)
-    response = jsonify({'count': count, 'result': result})
-    # ステータスコードは Created (201)
-    response.status_code = 200
-    return response
+# }}}
 
 ##############################
-# UserPostテーブルのCRUD
+# UserPostテーブルのCRUD/*{{{*/
 ##############################
 
 @app.route('/post', methods=['POST'])
-# def insert_or_update_user_post(user_id, rst_id, difficulty, comment):
 def create_or_update_post():
     '''UserPostにデータを作成or更新
     postメソッドでuser_idとrst_idとdifficultyとcomment
@@ -293,6 +296,12 @@ def create_or_update_post():
     # comment = request.form.get('comment').encode('utf-8')
     inserted_id = df.insert_or_update_user_post(\
             user_id, rst_id, difficulty, comment)
+
+    # userstatsの更新
+    uu = Update_UserStats(userid=user_id, rstid=rst_id)
+    update = uu.update_stats()
+    print update
+
     response = jsonify({'user_post_id': inserted_id})
     response.status_code = 201 if inserted_id else 418
     return response
@@ -336,19 +345,7 @@ def delete_post():
     response = jsonify({'delete_user_post': success})
     response.status_code = 200 if success else 418
     return response
-
-
-# @app.route('/<int:user_id>', methods=['DELETE'])
-# def delete(user_id):
-#     # リクエストされたパスと ID を持つユーザを探す
-#     _get_user(user_id)
-#     # ユーザがいれば削除する
-#     users.pop(user_id)
-#     # レスポンスオブジェクトを作る
-#     response = Response()
-#     # ステータスコードは NoContent (204)
-#     response.status_code = 204
-#     return response
+#}}}
 
 if __name__ == '__main__':
     app.debug = True

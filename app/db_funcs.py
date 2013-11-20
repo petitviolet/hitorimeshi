@@ -35,7 +35,7 @@ def insert_data(session, new_obj):
 
 
 ##############################
-# Tabelog
+# Tabelog#{{{
 ##############################
 
 def get_situation(situation):
@@ -184,11 +184,10 @@ def read_rst(rst_id):
             #         .filter('Rcd = :rcd').params(rcd=rst_id).first()
     session.commit()
     session.close()
-    return s
-
+    return s#}}}
 
 ##############################
-# User
+# User#{{{
 ##############################
 
 def read_user(user_id):
@@ -256,11 +255,10 @@ def delete_user(user_id, confirmation=False):
         print e
         session.commit()
         session.close()
-        return False
-
+        return False#}}}
 
 ##############################
-# UserPost
+# UserPost#{{{
 ##############################
 
 def read_user_post(user_id, rst_id):
@@ -315,7 +313,7 @@ def insert_or_update_user_post(user_id, rst_id, difficulty, comment):
     now = datetime.now()
     userpost = _check_user_post_is_exists(session, user_id, rst_id)
     if userpost:
-        print 'update'
+        print 'update user_post'
         try:
             userpost.modified = now
             userpost.difficulty = difficulty
@@ -327,7 +325,7 @@ def insert_or_update_user_post(user_id, rst_id, difficulty, comment):
             session.rollback()
         session.close()
     else:
-        print 'create'
+        print 'create user_post'
         new_user_post = UserPost(user_id, rst_id, difficulty, comment, now, now)
         inserted_id = insert_data(session, new_user_post)
     return inserted_id
@@ -354,34 +352,36 @@ def avg_difficult(rst_id):
     session.commit()
     session.close()
     return float(avg[0]) if avg[0] else False
-
+#}}}
 
 ##############################
-# Title
+# Title#{{{
 ##############################
-def create_title(requirement):
+def create_title(rank, name, requirement, stamp):
     '''Titleを作成
     requirement：条件文
     '''
     session =  Session()
     now = datetime.now()
-    new_title = Title(requirement, created=now, modified=now)
+    new_title = Title(rank, name, requirement, stamp, created=now, modified=now)
     return insert_data(session, new_title)
 
 def read_title(id):
     session = Session()
     title = session.query(Title.id, User.user_name, User.home_place)\
-            .filter('id = :id')\
-            .params(id = id).first()
+            .filter(Title.id == id).first()
     session.commit()
     session.close()
     return title
 
-def update_title(id, requirement):
+def update_title(id, rank, name, requirement, stamp):
     now = datetime.now()
     session = Session()
     title = session.query(Title).filter(id=id)
+    title.rank = rank
+    title.name = name
     title.requirement = requirement
+    title.stamp = stamp
     title.modified = now
     try:
         session.flush()
@@ -399,7 +399,7 @@ def update_title(id, requirement):
 def delete_title(id):
     session = Session()
     try:
-        title = session.query(Title).filter('id = :id').params(id = id).first()
+        title = session.query(Title).filter(Title.id == id).first()
         print title
         session.delete(title)
         session.flush()
@@ -411,10 +411,10 @@ def delete_title(id):
         session.rollback()
         session.commit()
         session.close()
-        return False
+        return False#}}}
 
 ##############################
-# UserStats
+# UserStats#{{{
 ##############################
 
 def create_userstats(user_id, total, sequence, level_1, level_2, level_3,\
@@ -527,4 +527,4 @@ def delete_userstats(user_id):
         session.commit()
         session.close()
         return False
-
+#}}}
