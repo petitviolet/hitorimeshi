@@ -17,6 +17,9 @@ class JudgeTitle(object):
                 UserStats.yamashina, UserStats.saikyo, UserStats.minami,
                 UserStats.fushimi, UserStats.already_acquire)\
                         .filter(UserStats.id == user_id).first()._asdict()
+        session.commit()
+        session.close()
+
 
 
 
