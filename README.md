@@ -3,8 +3,8 @@
 
 更新日時
 --
-2013/11/06 15:46  
-1.read\_rstでidを返してたのを返さないように
+2013/11/21 15:46  
+1. /near\_rstで距離順にに返すようにした。せっかくなので距離も返すようにした。
 
 使い方
 --
@@ -26,9 +26,7 @@ TODO
   * url: /near\_rst
   * method: post
   * data: \{zoom: ズームレベル, lat: 緯度, lng: 経度, limit: 取得数(デフォルトで100件)\}
-  * 返り値: \{result: \{rst\_id, Restaurantname, Category, lat, lng, difficulty\(四捨五入\), raw\_difficulty\}\}
-
-  <strike>以前の返り値:\{result: \{id, rcd, restaurantname, tabelogmoblieurl, totalscore,situation, dinnerprice, lunchprice, category, station, address,tel, buisinesshours, holiday, point\}\}</strike>
+  * 返り値: \{result: \{rst\_id, Restaurantname, Category, lat, lng, distance, difficulty\(四捨五入\), raw\_difficulty\}\}
 
 2.店舗の詳細情報
   * url: /read\_rst

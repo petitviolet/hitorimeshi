@@ -6,6 +6,7 @@ from sqlalchemy import func
 from urllib import urlopen
 import json
 from datetime import datetime
+from geoalchemy import LineString
 
 def geo_coding(landmark):
     url = 'http://maps.googleapis.com/maps/api/geocode/json?address={landmark}&sensor=true'
@@ -107,37 +108,58 @@ def execute_sql(table='tabelog', where=''):
 def _get_margin(zoom=1.0):
     return 0.005 * (20.0 / (zoom + 0.0000000000000001))
 
-def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
+def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100):
     '''引数のlat(緯度)とlng(経度)を中心として、縦横margin*2の正方形ないにある
     レストランをTabelogテーブルから取得する
     デフォルト値は京都駅の緯度経度
     '''
+    session = Session()
     margin = _get_margin(zoom)
     left, right = lng - margin, lng + margin
     bottom, top = lat - margin, lat + margin
-    box = 'POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))' \
-            % (left, bottom, right, bottom, right, top, left, top, left, bottom)
-            # % (x+m, y-m, x-m, y-m, x-m, y+m, x+m, y+m, x+m, y-m)
-    session = Session()
-    # s = session.query(Tabelog.RestaurantName, gf.wkt(Tabelog.LatLng))\
-    s = session.query(
-            Tabelog.Rcd.label('rst_id'), Tabelog.RestaurantName, Tabelog.Category,
-            # Tabelog.TabelogMobileUrl, Tabelog.TotalScore, Tabelog.Situation,
-            # Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
-            # Tabelog.Station, Tabelog.Address, Tabelog.Tel,
-            # Tabelog.BusinessHours, Tabelog.Holiday,
-            # gf.wkt(Tabelog.LatLng).label('Point'),
-            gf.x(Tabelog.LatLng).label('lat'),
-            gf.y(Tabelog.LatLng).label('lng'),
-            func.round(func.avg(UserPost.difficulty)).label('difficulty'),\
-            func.avg(UserPost.difficulty).label('raw_difficulty'))\
-            .filter(UserPost.rst_id == Tabelog.Rcd)\
-            .filter(Tabelog.LatLng.within(box))\
-            .group_by(UserPost.id)\
-            .limit(limit)
+    # box = 'POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))' \
+    #         % (left, bottom, right, bottom, right, top, left, top, left, bottom)
+    #         # % (x+m, y-m, x-m, y-m, x-m, y+m, x+m, y+m, x+m, y-m)
+    # point = 'POINT({lat} {lng})'
+    # # s = session.query(Tabelog.RestaurantName, gf.wkt(Tabelog.LatLng))\
+    # s = session.query(
+    #         Tabelog.Rcd.label('rst_id'), Tabelog.RestaurantName, Tabelog.Category,
+    #         # Tabelog.TabelogMobileUrl, Tabelog.TotalScore, Tabelog.Situation,
+    #         # Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
+    #         # Tabelog.Station, Tabelog.Address, Tabelog.Tel,
+    #         # Tabelog.BusinessHours, Tabelog.Holiday,
+    #         # gf.wkt(Tabelog.LatLng).label('Point'),
+    #         gf.x(Tabelog.LatLng).label('lat'),
+    #         gf.y(Tabelog.LatLng).label('lng'),
+    #         gf.length(LineString(point.format(lat=lat, lng=lng),\
+    #                 gf.wkt(Tabelog.LatLng))).label('length'),\
+    #         func.round(func.avg(UserPost.difficulty)).label('difficulty'),\
+    #         func.avg(UserPost.difficulty).label('raw_difficulty'))\
+    #         .filter(UserPost.rst_id == Tabelog.Rcd)\
+    #         .filter(Tabelog.LatLng.within(box))\
+    #         .order_by('length')\
+    #         .group_by(UserPost.id)\
+    #         .limit(limit).all()
+    #         # .order_by(gf.distance(point.format(lat=lat, lng=lng),\
+    #         #     point.format(lat=gf.x(Tabelog.LatLng), lng=gf.y(Tabelog.LatLng))))\
+    #         # .desc()\
+    s = session.execute(\
+        ("select t.Rcd as rst_id, t.RestaurantName, t.Category, "
+        "X(t.LatLng) as lng, Y(t.LatLng) as lat, "
+        "floor(avg(up.difficulty)) as difficulty,"
+        "avg(up.difficulty) as raw_difficulty, "
+        "GLength(GeomFromText(Concat('LineString("
+        "{lat} {lng}, ', Y(t.LatLng), ' ', X(t.LatLng), ')'))) as distance "
+        "from tabelog as t, user_post as up "
+        "where t.Rcd = up.rst_id and MBRContains(GeomFromText('"
+        "LineString({tr_lng} {tr_lat}, {bl_lng} {bl_lat})'), t.LatLng) "
+        "group by up.id order by distance asc limit {limit}")\
+        .format(lat=lat, lng=lng, \
+        tr_lng=right, tr_lat=top, bl_lng=left, bl_lat=bottom, limit=limit))
+    results = [dict(result) for result in s.fetchall()]
     session.commit()
     session.close()
-    return s
+    return results
 
 def full_info_of_near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
     '''引数のlat(緯度)とlng(経度)を中心として、縦横margin*2の正方形ないにある
@@ -397,6 +419,42 @@ def update_title(title_id, rank, name, requirement, stamp):
     updated_id = title.id
     session.close()
     return updated_id
+
+def insert_or_update_title(rank=None, name=None, requirement=None, stamp=None):
+    '''称号の運営用
+    新しく称号を追加、更新するために使う
+    '''
+    now = datetime.now()
+    session = Session()
+    if not name or not requirement:
+        print '称号名と取得条件を入力してください'
+        return False
+    title = session.query(Title)\
+            .filter(Title.name == name)\
+            .filter(Title.requirement == requirement)\
+            .limit(1).first()
+    try:
+        if title:
+            title.rank = rank
+            title.stamp = stamp
+            title.modified = now
+            print 'title update'
+        else:
+            title = Title(rank, name, requirement, stamp, now, now)
+            session.add(title)
+            print 'title insert'
+        session.flush()
+        session.commit()
+        session.close()
+        return True
+    except Exception, e:
+        print e
+        session.rollback()
+        session.commit()
+        session.close()
+        return False
+
+
 
 def delete_title(id):
     session = Session()

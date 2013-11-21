@@ -140,11 +140,11 @@ def get_near_rsts(zoom, lat, lng, limit):
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     '''
     limit = limit if limit else 100
-    rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit).all()
+    rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit)
     rsts = [rst._asdict() for rst in rsts] if rsts else None
     return rsts
 
-# test
+# 使わない /full_info_of_near_rst #{{{
 @app.route('/full_info_of_near_rst', methods=['POST'])
 def test_near_rsts():
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
@@ -174,7 +174,7 @@ def get_full_info_of_near_rsts(zoom, lat, lng, limit):
     rsts = df.full_info_of_near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit).all()
     rsts = [rst._asdict() for rst in rsts] if rsts else None
     return rsts
-####
+#####}}}
 
 @app.route('/read_rst', methods=['POST'])
 def read_rst():
