@@ -6,7 +6,6 @@ from sqlalchemy import func
 from urllib import urlopen
 import json
 from datetime import datetime
-from geoalchemy import LineString
 
 def geo_coding(landmark):
     url = 'http://maps.googleapis.com/maps/api/geocode/json?address={landmark}&sensor=true'
@@ -143,20 +142,24 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100):
     #         # .order_by(gf.distance(point.format(lat=lat, lng=lng),\
     #         #     point.format(lat=gf.x(Tabelog.LatLng), lng=gf.y(Tabelog.LatLng))))\
     #         # .desc()\
-    s = session.execute(\
-        ("select t.Rcd as rst_id, t.RestaurantName, t.Category, "
-        "X(t.LatLng) as lng, Y(t.LatLng) as lat, "
-        "floor(avg(up.difficulty)) as difficulty,"
-        "avg(up.difficulty) as raw_difficulty, "
-        "GLength(GeomFromText(Concat('LineString("
-        "{lat} {lng}, ', Y(t.LatLng), ' ', X(t.LatLng), ')'))) as distance "
-        "from tabelog as t, user_post as up "
-        "where t.Rcd = up.rst_id and MBRContains(GeomFromText('"
-        "LineString({tr_lng} {tr_lat}, {bl_lng} {bl_lat})'), t.LatLng) "
-        "group by up.id order by distance asc limit {limit}")\
-        .format(lat=lat, lng=lng, \
-        tr_lng=right, tr_lat=top, bl_lng=left, bl_lat=bottom, limit=limit))
-    results = [dict(result) for result in s.fetchall()]
+    try:
+        s = session.execute(\
+            ("select t.Rcd as rst_id, t.RestaurantName, t.Category, "
+            "X(t.LatLng) as lat, Y(t.LatLng) as lng, "
+            "floor(avg(up.difficulty)+0.5) as difficulty,"
+            "avg(up.difficulty) as raw_difficulty, "
+            "GLength(GeomFromText(Concat('LineString("
+            "{lat} {lng}, ', Y(t.LatLng), ' ', X(t.LatLng), ')'))) as distance "
+            "from tabelog as t, user_post as up "
+            "where t.Rcd = up.rst_id and MBRContains(GeomFromText('"
+            "LineString({tr_lng} {tr_lat}, {bl_lng} {bl_lat})'), t.LatLng) "
+            "group by up.id order by distance asc limit {limit}")\
+            .format(lat=lat, lng=lng, \
+            tr_lng=right, tr_lat=top, bl_lng=left, bl_lat=bottom, limit=limit))
+        results = [dict(result) for result in s.fetchall()]
+    except:
+        session.rollback()
+        results = False
     session.commit()
     session.close()
     return results
@@ -180,8 +183,11 @@ def full_info_of_near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
             Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
             Tabelog.Station, Tabelog.Address, Tabelog.Tel,
             Tabelog.BusinessHours, Tabelog.Holiday,
+            func.round(func.avg(UserPost.difficulty)).label('difficulty'),\
             gf.wkt(Tabelog.LatLng).label('Point'))\
+            .filter(Tabelog.Rcd == UserPost.rst_id)\
             .filter(Tabelog.LatLng.within(box))\
+            .group_by(UserPost.id)\
             .limit(limit)
     session.commit()
     session.close()
@@ -224,10 +230,12 @@ def read_user(user_id):
     session.close()
     return user
 
-def create_user(user_name, home_place):
+def create_user(user_name, home_place=None):
     '''Userテーブルに新しいユーザを追加
     返り値はそのid
     '''
+    if not user_name:
+        return False
     session = Session()
     now = datetime.now()
     new_user = User(user_name, home_place, created=now, modified=now)
@@ -360,6 +368,19 @@ def _check_user_post_is_exists(session, user_id, rst_id):
             .filter('user_id = :user_id and rst_id = :rst_id')\
             .params(user_id=user_id, rst_id=rst_id).first()
 
+def read_comments(rst_id):
+    '''rst_idの店について、他の人のコメントを取得する
+    '''
+    session = Session()
+    s = session.query(UserPost.comment, UserPost.difficulty, User.user_name)\
+            .filter(UserPost.user_id == User.id)\
+            .filter(UserPost.rst_id == rst_id)\
+            .order_by(UserPost.modified.desc()).limit(10).all()
+    posts = [_s._asdict() for _s in s]
+    session.commit()
+    session.close()
+    return posts
+
 def avg_difficult(rst_id):
     '''Tabelog.idの店について、平均のdifficultyを返す
     '''
@@ -420,7 +441,16 @@ def update_title(title_id, rank, name, requirement, stamp):
     session.close()
     return updated_id
 
-def insert_or_update_title(rank=None, name=None, requirement=None, stamp=None):
+
+def insert_or_update_titles():
+    titles = open("titles.txt", 'r').read().strip().split("\n")
+    for id, title in enumerate(titles):
+        rank, name, requirement, stamp = title.split(',')
+        _insert_or_update_title(id + 1, rank, name, requirement, stamp)
+    return True
+
+def _insert_or_update_title(id=None, rank=None, name=None, \
+                                        requirement=None, stamp=None):
     '''称号の運営用
     新しく称号を追加、更新するために使う
     '''
@@ -430,19 +460,19 @@ def insert_or_update_title(rank=None, name=None, requirement=None, stamp=None):
         print '称号名と取得条件を入力してください'
         return False
     title = session.query(Title)\
-            .filter(Title.name == name)\
-            .filter(Title.requirement == requirement)\
+            .filter(Title.id == id)\
             .limit(1).first()
     try:
         if title:
             title.rank = rank
             title.stamp = stamp
             title.modified = now
-            print 'title update'
+            print 'title update',
         else:
-            title = Title(rank, name, requirement, stamp, now, now)
+            title = Title(id, rank, name, requirement, stamp, now, now)
             session.add(title)
-            print 'title insert'
+            print 'title insert',
+        print name
         session.flush()
         session.commit()
         session.close()
@@ -453,8 +483,6 @@ def insert_or_update_title(rank=None, name=None, requirement=None, stamp=None):
         session.commit()
         session.close()
         return False
-
-
 
 def delete_title(id):
     session = Session()

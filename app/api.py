@@ -141,8 +141,8 @@ def get_near_rsts(zoom, lat, lng, limit):
     '''
     limit = limit if limit else 100
     rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit)
-    rsts = [rst._asdict() for rst in rsts] if rsts else None
-    return rsts
+    # rsts = [rst._asdict() for rst in rsts] if rsts else None
+    return rsts if rsts else None
 
 # 使わない /full_info_of_near_rst #{{{
 @app.route('/full_info_of_near_rst', methods=['POST'])
@@ -330,6 +330,18 @@ def read_post():
     response.status_code = 200
     return response
 
+@app.route('/read_comments', methods=['POST'])
+def read_comments():
+    '''rst_idの店のuser_postを取得
+    '''
+    _type = {'rst_id': 'int'}
+    values = _check_form(request.form, _type)
+    rst_id = values['rst_id']
+    posts = df.read_comments(rst_id)
+    response = jsonify({'result': posts})
+    response.status_code = 200
+    return response
+
 @app.route('/delete_post', methods=['DELETE'])
 def delete_post():
     '''UserPostからデータを削除
@@ -345,6 +357,7 @@ def delete_post():
     response = jsonify({'delete_user_post': success})
     response.status_code = 200 if success else 418
     return response
+
 #}}}
 
 if __name__ == '__main__':

@@ -145,7 +145,7 @@ class UserPost(Base):
 class Title(Base):
     __tablename__ = 'title'
     __table_args__ = {'mysql_engine': 'MyISAM'}
-    id = Column('id', Integer, primary_key=True, autoincrement=True)
+    id = Column('id', Integer, primary_key=True)
     rank = Column('rank', String(20))
     name = Column('name', Text)
     requirement = Column('requirement', Text)
@@ -153,7 +153,8 @@ class Title(Base):
     created = Column('created', DATETIME, default=datetime.now, nullable=False)
     modified = Column('modified', DATETIME, default=datetime.now, nullable=False)
     now = datetime.now()
-    def __init__(self, rank, name, requirement, stamp, created, modified):
+    def __init__(self, id, rank, name, requirement, stamp, created, modified):
+        self.id = id
         self.rank = rank
         self.name = name
         self.requirement = requirement

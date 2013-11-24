@@ -21,6 +21,7 @@ class Update_UserStats(object):
         try:
             ku = ADDRESS_PARSER.findall(address)[0]
         except TypeError:
+            print 'address => ' + address
             return None
         return ku
 
