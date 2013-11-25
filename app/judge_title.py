@@ -1,9 +1,7 @@
 # -*- encoding:utf-8 -*-
 
-from Table import Session, Tabelog, UserPost, UserStats, Title
-from sqlalchemy import func
+from Table import Session, UserStats, Title
 import re
-import datetime
 
 class JudgeTitle(object):
     def __init__(self, user_id):
@@ -43,6 +41,9 @@ class JudgeTitle(object):
         return True
 
     def ku(self):
+        '''user_statsから各区に何回行ったかを取得し、
+        それに応じた称号を返す
+        '''
         session = Session()
         section_req = re.compile("(.*)区.*?(\d+)件.*")
         some_sec_req = re.compile("京都(\d+)区.*")
@@ -81,6 +82,9 @@ class JudgeTitle(object):
         return True
 
     def fetch_title_name(self):
+        '''title()とku()でself.acquireに格納したidから
+        称号の名前を取得し、返す
+        '''
         session = Session()
         self.total()
         self.ku()
@@ -93,6 +97,9 @@ class JudgeTitle(object):
         except Exception, e:
             print e
             session.rollback()
+            session.commit()
+            session.close()
+            return False
         session.commit()
         session.close()
         return title_names

@@ -6,6 +6,7 @@ from sqlalchemy import func
 from urllib import urlopen
 import json
 from datetime import datetime
+from judge_title import JudgeTitle
 
 def geo_coding(landmark):
     url = 'http://maps.googleapis.com/maps/api/geocode/json?address={landmark}&sensor=true'
@@ -483,6 +484,14 @@ def _insert_or_update_title(id=None, rank=None, name=None, \
         session.commit()
         session.close()
         return False
+
+def judge_acquired_title(user_id):
+    '''user_idでそのユーザーが取得している称号の名前を返す
+    '''
+    jt = JudgeTitle(user_id)
+    acquired_titles = jt.fetch_title_name()
+    return acquired_titles
+
 
 def delete_title(id):
     session = Session()

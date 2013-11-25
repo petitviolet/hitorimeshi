@@ -274,7 +274,7 @@ def delete_user():
 # }}}
 
 ##############################
-# UserPostテーブルのCRUD/*{{{*/
+# UserPostテーブルのCRUD & UserStats & Title /*{{{*/
 ##############################
 
 @app.route('/post', methods=['POST'])
@@ -300,9 +300,9 @@ def create_or_update_post():
     # userstatsの更新
     uu = Update_UserStats(userid=user_id, rstid=rst_id)
     update = uu.update_stats()
+    acquired_titles = df.judge_acquired_title(user_id)
     print update
-
-    response = jsonify({'user_post_id': inserted_id})
+    response = jsonify({'acquired_titles': acquired_titles})
     response.status_code = 201 if inserted_id else 418
     return response
 
