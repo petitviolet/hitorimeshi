@@ -78,8 +78,7 @@ def execute_sql_to_tabelog(where):
             Tabelog.DinnerPrice, Tabelog.LunchPrice, Tabelog.Category,
             Tabelog.Station, Tabelog.Address, Tabelog.Tel,
             Tabelog.BusinessHours, Tabelog.Holiday,
-            gf.wkt(Tabelog.LatLng).label('Point'))\
-                    .filter(where)
+            gf.wkt(Tabelog.LatLng).label('Point')).filter(where)
     session.commit()
     session.close()
     return s
@@ -108,7 +107,7 @@ def execute_sql(table='tabelog', where=''):
 def _get_margin(zoom=1.0):
     return 0.005 * (20.0 / (zoom + 0.0000000000000001))
 
-def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100):
+def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100, lonely=True):
     '''引数のlat(緯度)とlng(経度)を中心として、縦横margin*2の正方形ないにある
     レストランをTabelogテーブルから取得する
     デフォルト値は京都駅の緯度経度
@@ -117,6 +116,8 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100):
     margin = _get_margin(zoom)
     left, right = lng - margin, lng + margin
     bottom, top = lat - margin, lat + margin
+    # lonely = u"一人で" if lonely else ""
+    lonely = u"and t.situation like \"%一人で%\"" if lonely else ""
     # box = 'POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))' \
     #         % (left, bottom, right, bottom, right, top, left, top, left, bottom)
     #         # % (x+m, y-m, x-m, y-m, x-m, y+m, x+m, y+m, x+m, y-m)
@@ -145,7 +146,7 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100):
     #         # .desc()\
     try:
         s = session.execute(\
-            ("select t.Rcd as rst_id, t.RestaurantName, t.Category, "
+            unicode("select t.Rcd as rst_id, t.RestaurantName, t.Category, "
             "X(t.LatLng) as lat, Y(t.LatLng) as lng, "
             "floor(avg(up.difficulty)+0.5) as difficulty,"
             "avg(up.difficulty) as raw_difficulty, "
@@ -154,11 +155,14 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100):
             "from tabelog as t, user_post as up "
             "where t.Rcd = up.rst_id and MBRContains(GeomFromText('"
             "LineString({tr_lng} {tr_lat}, {bl_lng} {bl_lat})'), t.LatLng) "
+            "{lonely} "   # 一人で？
             "group by up.id order by distance asc limit {limit}")\
             .format(lat=lat, lng=lng, \
-            tr_lng=right, tr_lat=top, bl_lng=left, bl_lat=bottom, limit=limit))
+            tr_lng=right, tr_lat=top, bl_lng=left, bl_lat=bottom, limit=limit,\
+            lonely=lonely))
         results = [dict(result) for result in s.fetchall()]
-    except:
+    except Exception, e:
+        print e
         session.rollback()
         results = False
     session.commit()
@@ -195,6 +199,7 @@ def full_info_of_near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=None):
     return s
 
 def read_rst(rst_id):
+    # 店の詳細情報取得
     session = Session()
     s = session.query(
             Tabelog.Rcd.label('rst_id'), Tabelog.RestaurantName,
@@ -213,7 +218,13 @@ def read_rst(rst_id):
             #         .filter('Rcd = :rcd').params(rcd=rst_id).first()
     session.commit()
     session.close()
-    return s#}}}
+    return s
+
+def searce_rst(query):
+    session = Session()
+    s = session.query(Tabelog)
+
+#}}}
 
 ##############################
 # User#{{{

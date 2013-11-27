@@ -50,7 +50,8 @@ def consumes(content_type):
 # @app.teardown_appcontext
 # def shutdown_session(exception=None):
 #     df.Session.remove()
-
+##############################
+# ユーティリティ {{{
 def _to_serializable_dict(result_obj):
     '''index用
     '''
@@ -75,8 +76,7 @@ def _check_form(forms, tokens):
                 value = float(value)
             elif t == 'str':
                 value = value.encode('utf-8')
-        except Exception, e:
-            # print e
+        except Exception:
             value = None
         result[k] = value
     return result
@@ -108,8 +108,7 @@ def get_situation():
     response = jsonify({'count': count, 'result': result})
     # ステータスコードは Created (201)
     response.status_code = 200
-    return response
-
+    return response#}}}
 
 ##############################
 # Tabelogテーブル/*{{{*/
@@ -124,23 +123,26 @@ def near_rsts():
         response = jsonify({'result': False})
         response.status_code = 500
     else:
-        _type = {'zoom': 'float', 'lat': 'float', 'lng': 'float', 'limit': 'int'}
+        _type = {'zoom': 'float', 'lat': 'float', 'lng': 'float', 'limit':
+                'int', 'lonely': 'string'}
         values = _check_form(request.form, _type)
         zoom = values['zoom']
         lat = values['lat']
         lng = values['lng']
         limit = values['limit']
-        rsts = get_near_rsts(zoom=zoom, lat=lat, lng=lng, limit=limit)
+        lonely = True if values['lonely'] == '1' else False
+        rsts = get_near_rsts(zoom=zoom, lat=lat, lng=lng, \
+                                    limit=limit, lonely=lonely)
         response = jsonify({'result': rsts})
         response.status_code = 200 if rsts else 418
     return response
 
 @cache.memoize(timeout=18000)
-def get_near_rsts(zoom, lat, lng, limit):
+def get_near_rsts(zoom, lat, lng, limit, lonely):
     '''(lat, lng)に近い店舗をzoomにあわせてlimit件取得する
     '''
     limit = limit if limit else 100
-    rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit)
+    rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit, lonely=lonely)
     # rsts = [rst._asdict() for rst in rsts] if rsts else None
     return rsts if rsts else None
 
@@ -197,6 +199,8 @@ def get_rst_info(rst_id):
     rst_info = df.read_rst(rst_id)
     return rst_info._asdict() if rst_info else None
 #}}}
+
+
 
 ##############################
 # Userテーブル/*{{{*/
