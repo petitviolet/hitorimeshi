@@ -31,9 +31,8 @@ class JudgeTitle(object):
         total = self.stats['total']
         conds = [1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, \
                 250, 300, 400, 500, 1000]
-        number = len(conds)
+        number = len(conds) - 1
         for idx, cond in enumerate(conds):
-            print number, idx
             if total >= cond:
                 self.acquire.add(number - idx)
             else:
@@ -81,13 +80,20 @@ class JudgeTitle(object):
                     print id
         return True
 
+    def fetch_title_id(self):
+        '''title()とku()でself.acquireに格納したidを返す
+        '''
+        self.total()
+        self.ku()
+        return map(str, self.acquire)
+
     def fetch_title_name(self):
         '''title()とku()でself.acquireに格納したidから
         称号の名前を取得し、返す
         '''
-        session = Session()
         self.total()
         self.ku()
+        session = Session()
         title_names = []
         try:
             for title_id in self.acquire:

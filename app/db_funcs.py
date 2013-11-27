@@ -458,7 +458,7 @@ def insert_or_update_titles():
     titles = open("titles.txt", 'r').read().strip().split("\n")
     for id, title in enumerate(titles):
         rank, name, requirement, stamp = title.split(',')
-        _insert_or_update_title(id + 1, rank, name, requirement, stamp)
+        _insert_or_update_title(id, rank, name, requirement, stamp)
     return True
 
 def _insert_or_update_title(id=None, rank=None, name=None, \
@@ -500,7 +500,8 @@ def judge_acquired_title(user_id):
     '''user_idでそのユーザーが取得している称号の名前を返す
     '''
     jt = JudgeTitle(user_id)
-    acquired_titles = jt.fetch_title_name()
+    acquired_titles = jt.fetch_title_id()
+    # acquired_titles = jt.fetch_title_name()
     return acquired_titles
 
 
