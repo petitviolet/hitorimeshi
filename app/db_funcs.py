@@ -250,6 +250,7 @@ def create_user(user_name, home_place=None):
         return False
     session = Session()
     now = datetime.now()
+    user_name = user_name.replace('\n', '')
     new_user = User(user_name, home_place, created=now, modified=now)
     return insert_data(session, new_user)
 

@@ -192,7 +192,7 @@ def read_rst():
     response.status_code = 200
     return response
 
-@cache.memoize(timeout=18000)
+@cache.memoize(timeout=180)
 def get_rst_info(rst_id):
     '''dbにアクセスするもので、cacheを使う
     '''
