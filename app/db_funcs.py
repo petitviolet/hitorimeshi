@@ -264,7 +264,7 @@ def update_user(user_id, new_name, new_place):
         user = session.query(User)\
                 .filter('id = :user_id')\
                 .params(user_id = user_id).first()
-        user.user_name = new_name
+        user.user_name = new_name.replace('\n', '')
         user.home_place = new_place
         user.modified = now
         session.flush()
