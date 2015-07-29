@@ -16,40 +16,77 @@ def main():
     '''既にリクエストしてキャッシュしてあるものは除外して
     tabelogにリクエストをする
     '''
-    already_indexed = ' '.join(glob.glob('./cache/*.xml'))
-    _stations = [s for s in STATIONS if s not in already_indexed]
-    for station in _stations:
-        print station + '----------'
-        values = request_tabelog(station)
-        save_tabelog_values(values)
+    requested_count = 0  # apiは1日200回
+    already_indexed = {}
+    # cacheディレクトリからすでにダウンロード済みのものを取得する
 
-def request_tabelog(station=None):
+    # とりあえず大阪を取る
+    # 次は東京
+    for i in xrange(13, 14):
+    # for i in xrange(1, 48):
+        try:
+            already_indexed['{i:>02d}'.format(i=i)] = \
+                    ' '.join(glob.glob('./cache/{i:>02d}/*.xml'.format(i=i)))
+        except:
+            continue
+
+    # まだindexされていないものをindexする
+    for f_index, stations in STATIONS.iteritems():
+        # とりあえず大阪を取る
+        # 次は東京
+        if f_index != '13':
+            continue
+        for station in stations:
+            requested_count += 1
+            if requested_count == 200:
+                return '一旦終了'
+            if station in already_indexed[f_index]:
+                continue
+            print station + '----------'
+            try:
+                values = request_tabelog(f_index, station)
+            except ValueError as e:
+                print e
+                return
+            save_tabelog_values(values)
+
+TO_BE_EXIT = False  # 2回連続で400エラーなら終了する
+
+def request_tabelog(f_index, station=None):
     '''tabelogのapiにリクエストを送る
     【京都版】なので京都府限定で、駅名を引数に渡すと、その近辺で検索する
     結果をキャッシュとしてDBに保存する
     '''
     values = []
+    global TO_BE_EXIT
     # apiの仕様で60ページしかとれない
     for i in xrange(1, 61):
         print '  %d番目' % i
         sleep(3)
         url = TABELOG_URL.format(page_num=i, api_key=API_KEY, station=station)
+        cache_dir = CACHE_DIR.format(f_index = f_index)
+        if not os.path.exists(cache_dir):
+            os.mkdir(cache_dir)
         try:
             # httpアクセスと、その応答をファイルキャッシュ
             html = urlopen(url).read()
-            cache_fname = CACHE_DIR + station + '_' + str(i) + CACHE_FILE
+            cache_fname = cache_dir + station + '_' + str(i) + CACHE_FILE
             save_cache_html(cache_fname, html)
+            TO_BE_EXIT = False
         except Exception as e:
             print 'エラー！=> ', e
+            if TO_BE_EXIT:
+                raise ValueError('終わり!')
+            TO_BE_EXIT = True
             break
         values.extend(extract_item_from_html(html))
     return values
 
-def values_from_cachefile():
+def values_from_cachefile(f_index):
     '''ファイルキャッシュからデータを読み込む
     '''
     values = []
-    xml_files = glob.glob('./cache/*.xml')
+    xml_files = glob.glob('./cache/{f_index:<02}/*.xml'.format(f_index=f_index))
     for xml_file in xml_files:
         html = open(xml_file, 'r').read().strip()
         values.extend(extract_item_from_html(html))
@@ -66,8 +103,10 @@ def save_tabelog_values(values):
             + ") values (" + "%s, " * 17 + "GeomFromText('POINT(%s %s)'));"
     cur.executemany(sql, values)
             # + ') values (' + '%s,' * 18 + '%s)', values)
-    cur.close()
-    con.close()
+    return cur, con
+    # con.commit()
+    # cur.close()
+    # con.close()
 
 def extract_item_from_html(html):
     '''htmlをlxmlでパースして各Itemをリスト化する

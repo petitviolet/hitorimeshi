@@ -143,6 +143,7 @@ def get_near_rsts(zoom, lat, lng, limit, lonely):
     '''
     limit = limit if limit else 100
     rsts = df.near_rests(lat=lat, lng=lng, zoom=zoom, limit=limit, lonely=lonely)
+    # print 'len(rsts) => ', len(rsts)
     # rsts = [rst._asdict() for rst in rsts] if rsts else None
     return rsts if rsts else None
 

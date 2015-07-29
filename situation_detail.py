@@ -24,7 +24,9 @@ def save_tabelog_situations():
     # geometry型に変換する
     # cur.executemany(sql, values)
             # + ') values (' + '%s,' * 18 + '%s)', values)
-    sql = 'select TabelogURL from tabelog'
+    sql = ('select TabelogURL from tabelog where Rcd not in'
+            '(select rst_id from user_post)')
+    # sql = 'select TabelogURL from tabelog'
     fname = 'situation.dict'
     dic = load_pickle(fname)
     if dic:
@@ -211,3 +213,4 @@ def lonly_rate_of_url(url):
 
 if __name__ == '__main__':
     save_tabelog_situations()
+    set_default_difficulty()

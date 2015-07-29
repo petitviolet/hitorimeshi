@@ -105,7 +105,7 @@ def execute_sql(table='tabelog', where=''):
     return s
 
 def _get_margin(zoom=1.0):
-    return 0.005 * (20.0 / (zoom + 0.0000000000000001))
+    return 0.001 * (20.0 / (zoom + 0.0000000000000001))
 
 def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100, lonely=True):
     '''引数のlat(緯度)とlng(経度)を中心として、縦横margin*2の正方形ないにある
@@ -162,7 +162,7 @@ def near_rests(lat=34.985458, lng=135.757755, zoom=1, limit=100, lonely=True):
             lonely=lonely))
         results = [dict(result) for result in s.fetchall()]
     except Exception, e:
-        print e
+        print 'errorin near_rsts', e
         session.rollback()
         results = False
     session.commit()
